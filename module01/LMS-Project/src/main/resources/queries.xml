@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<properties>
+
+    <query key="students.findAll">
+        select *
+        from 학생
+    </query>
+
+    <query key="students.save">
+        insert into 학생 (student_id, student_pw, student_no, student_name, student_address, student_email, student_phone)
+        values (?, ?, ?, ?, ?, ?, ?)
+    </query>
+
+    <query key="professor.save">
+        insert into 교수 (professor_id, professor_name, professor_no, professor_address, professor_email, professor_phone, professor_pw)
+        values (?, ?, ?, ?, ?, ?, ?)
+    </query>
+
+    <query key="professor.existById">
+        SELECT COUNT(*) FROM 교수 WHERE professor_id = ?
+    </query>
+
+    <query key="professor.existByEmail">
+        SELECT COUNT(*) FROM 교수 WHERE professor_email = ?
+
+    </query>
+
+    <query key="students.existsByStudentId">
+        select count(*)
+        from 학생
+        where student_id = ?
+    </query>
+
+    <query key="students.existsByEmail">
+        SELECT COUNT(*)
+        FROM 학생
+        WHERE student_email = ?
+    </query>
+
+    <query key="students.existsByStudentNo">
+        SELECT COUNT(*) FROM 학생 WHERE student_no = ?
+    </query>
+
+    <query key="loginStudent">
+        SELECT student_id, student_name
+        FROM 학생
+        WHERE student_id = ?
+        AND student_pw = ?
+    </query>
+
+    <query key="professor.save">
+        insert into 교수 (professor_id, professor_name, professor_no, professor_address, professor_email, professor_phone, professor_pw)
+        values (?, ?, ?, ?, ?, ?, ?)
+    </query>
+
+    <query key="loginProfessor">
+        SELECT professor_id, professor_name
+        FROM 교수
+        WHERE professor_id = ?
+        AND professor_pw = ?
+    </query>
+
+    -- 학생 기능
+    <query key="students.findAll">
+        select
+        *
+        from 학생
+    </query>
+
+    <query key="course.findClass">
+        select
+        c.class_no,
+        c.class_name,
+        c.class_time,
+        c.class_type,
+        c.class_room,
+        c.class_point,
+        pr.professor_name,
+        c.class_capacity,
+        (select count(*) from 수강 en where en.class_no = c.class_no) as current_count
+        from 강의 c
+        join 교수 pr on c.professor_id = pr.professor_id
+    </query>
+
+
+    <query key="enrollment.addClass">
+        insert into 수강 (student_id, class_no, enroll_date)
+        values (?, ?, now());
+    </query>
+
+    <query key="enrollment.myEnrollView">
+        select
+        en.student_id,
+        st.student_name,
+        en.class_no,
+        c.class_name,
+        c.class_time,
+        c.class_type,
+        c.class_room,
+        pr.professor_name,
+        en.enroll_date,
+        (select count(*) from 수강 where class_no = en.class_no) as current_count,
+        c.class_capacity,
+        c.class_point
+        from 수강 en
+        join 학생 st on en.student_id = st.student_id
+        join 강의 c on en.class_no = c.class_no
+        join 교수 pr on c.professor_id = pr.professor_id
+        where en.student_id = ?
+        order by class_no asc
+    </query>
+
+    <query key="enrollment.deleteClass">
+        delete from 수강
+        where student_id = ? and class_no = ?
+    </query>
+
+    <query key="course.taskCheck">
+        select
+        c.class_task,
+        c.class_name
+        from 강의 c
+        join 수강 en on c.class_no = en.class_no
+        where en.student_id = ? and c.class_no = ?
+    </query>
+
+    <query key="enroll.scoreCheck">
+        select
+        en.score,
+        c.class_name
+        from 수강 en
+        join 강의 c on en.class_no = c.class_no
+        where en.student_id = ? and en.class_no = ?
+    </query>
+
+    <query key="course.timeCheck">
+        select
+            c.class_name,
+            c.class_time
+        from 강의 c
+        join 수강 en on c.class_no = en.class_no
+        where en.student_id = ?
+        and substring(c.class_time, 1, 1) = substring((select class_time from 강의 where class_no = ?), 1, 1)
+        and substring((select class_time from 강의 where class_no = ?), 4, 1) >= (substring(c.class_time, 2, 1)
+        and (substring(c.class_time, 4, 1)) >= substring((select class_time from 강의 where class_no = ?), 2, 1))
+    </query>
+
+    <query key="enroll.totalScoreView">
+        select
+            c.class_name,
+            en.score,
+            c.class_point
+        from 수강 en
+        join 강의 c on en.class_no = c.class_no
+        where student_id = ?
+    </query>
+  
+  <query key="selectCoursesByProfId">
+        SELECT *
+        FROM 강의
+        WHERE professor_id = ?
+    </query>
+
+    <query key="message.findUserId">
+        SELECT
+        user_id
+        FROM 사용자 WHERE professor_id = ?
+    </query>
+
+    <query key ="message.getAllUsers">
+        SELECT
+        user_id, user_name, student_id, professor_id
+        FROM 사용자 WHERE user_id != ?
+    </query>
+
+    <query key="message.getChatHistory">
+        SELECT
+        m.id, m.user_id, u.user_name, m.receiver_id, m.content
+        FROM 메시지 m JOIN 사용자 u ON m.user_id = u.user_id WHERE (m.user_id = ? AND m.receiver_id = ?) OR (m.user_id = ? AND m.receiver_id = ?) ORDER BY m.id ASC
+    </query>
+
+    <query key="message.sendChatMessage">
+        INSERT INTO 메시지 (user_id, receiver_id, content, id) VALUES (?, ?, ?, (SELECT new_id FROM (SELECT COALESCE(MAX(id), 0) + 1 AS new_id FROM 메시지) t))
+    </query>
+
+    <query key="message.newProfMessage">
+        INSERT INTO 메시지 (user_id, professor_id, receiver_id, content, user_name) VALUES (?, ?, ?, ?, (SELECT professor_name FROM 교수 WHERE professor_id = ?))
+
+    </query>
+
+    <query key="message.profContentView">
+        SELECT user_id, user_name, content FROM 메시지 WHERE receiver_id = ?
+    </query>
+
+
+
+
+
+    <query key="deleteCourse">
+
+        DELETE FROM 강의 WHERE class_no = ?
+    </query>
+
+    
+
+    <query key="selectStudentsByClassNo">
+        SELECT s.student_id, s.student_name, e.score, e.status
+        FROM 수강 e
+        JOIN 학생 s ON e.student_id = s.student_id
+        WHERE e.class_no = ?
+    </query>
+
+    <query key ="updateProfessorInfo">
+        UPDATE 교수
+        SET professor_name=?, professor_no=?, professor_address=?, professor_email=?, professor_phone=?, professor_pw=? WHERE professor_id=?
+    </query>
+
+    <query key="updateClassTask">
+        UPDATE 강의
+        SET class_task = ?
+        WHERE class_no = ? AND professor_id = ?
+    </query>
+
+    <query key="updateStudentScore">
+        UPDATE 수강
+        SET score = ?
+        WHERE class_no = ? AND student_id = ?
+    </query>
+
+    <query key="checkTimeRoomConflict">
+        SELECT COUNT(*)
+        FROM 강의
+        WHERE class_time = ? AND class_room = ?
+
+    </query>
+
+    <query key="getLastClassNo">
+        SELECT class_no
+        FROM 강의
+        ORDER BY class_no DESC LIMIT 1
+
+    </query>
+
+    <query key="insertCourse">
+        INSERT
+        INTO 강의 (class_no, class_name, class_point, class_time, class_room, class_type, professor_id, class_task, class_capacity)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+
+    </query>
+
+
+    <query key="student.allMemberView">
+        select
+            student_name as NAME,
+            student_id as ID,
+            '학생' as TYPE -- 모든 행의 type 컬럼에 '학생' 구분 추가
+        from 학생
+        union all
+        select
+            professor_name as NAME,
+            professor_id as ID,
+            '교수' as TYPE
+        from 교수
+    </query>
+
+    <query key="student.myInfoView">
+        select
+            *
+        from 학생
+        where student_id = ?
+    </query>
+
+    <query key="student.editMyInfo">
+        update 학생
+            set student_name = ?,
+                student_address = ?,
+                student_email = ?,
+                student_phone = ?,
+                student_pw = ?
+        where student_id = ?
+    </query>
+
+    <query key="message.ensureUser">
+        INSERT IGNORE INTO 사용자 (user_id, user_name)
+        SELECT ?, IFNULL(
+        (SELECT student_name FROM 학생 WHERE student_id = ?),
+        IFNULL((SELECT professor_name FROM 교수 WHERE professor_id = ?), '미등록사용자')
+        )
+    </query>
+
+    <query key="message.newMessage">
+        INSERT INTO 메시지 (user_id, receiver_id, content)
+        VALUES (?, ?, ?)
+    </query>
+
+
+    <query key="message.contentView">
+        select
+        m.user_id,
+        u.user_name,
+        m.content,
+        m.receiver_id
+        from 메시지 m
+        join 사용자 u on m.user_id = u.user_id
+        where m.receiver_id = ? OR m.user_id = ?  -- 👈 나에게 온 것과 내가 보낸 것 모두 조회
+        order by m.id ASC
+    </query>
+
+    <query key="message.chatHistory">
+        select
+            m.user_id,
+            m.content,
+            m.receiver_id,
+            m.id,
+            u.user_name
+        from 메시지 m
+        join 사용자 u on m.user_id = u.user_id
+        where (m.user_id = ? and m.receiver_id = ?)
+            or (m.user_id = ? and m.receiver_id = ?)
+        order by m.id ASC
+    </query>
+
+    <query key="updateCourseInfo">
+        UPDATE 강의
+        SET class_name = ?,
+        class_point = ?,
+        class_time = ?,
+        class_room = ?,
+        class_capacity = ?
+        WHERE class_no = ? AND professor_id = ?
+    </query>
+
+</properties>
